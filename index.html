@@ -9,6 +9,8 @@
     <link rel="apple-touch-icon" href="icon-192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- ✅ OneSignal — real push notifications (screen band hone par bhi aayengi) -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <title>UPSC MCQ — Practice Test</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap"
@@ -11264,6 +11266,7 @@
           student.email = payload.email || "";
           localStorage.setItem("upsc_student", JSON.stringify(student));
           updateProfileFAB();
+          oneSignalSetEmailIdentity(student.email); // ✅ NEW — push notification identity
         }
 
         loadingEl.classList.remove("show");
@@ -18370,6 +18373,38 @@
           }
         }
         loadQuestion(targetIdx);
+      }
+    </script>
+
+    <!-- ✅ ONE SIGNAL — schedule-test push notifications -->
+    <script>
+      // ⚠️ apna OneSignal App ID yahan daalo (onesignal.com dashboard se)
+      const ONESIGNAL_APP_ID = "3e1d372d-359b-4ed8-81a3-8fd9647fdd9a";
+
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function (OneSignal) {
+        await OneSignal.init({ appId: ONESIGNAL_APP_ID, allowLocalhostAsSecureOrigin: true });
+        // ✅ Login hote hi (ya page load par agar student pehle se hai) uska
+        // email OneSignal ko bata do — backend isi email se notification
+        // bhejega. Registration se PEHLE koi bhi login/tag nahi hota — koi
+        // fake/anonymous entry Pro_Members ya Registrations se galat match
+        // nahi hogi kyunki backend hamesha email Registrations me dhoondhta hai.
+        try {
+          if (typeof student !== "undefined" && student && student.email) {
+            await OneSignal.login(student.email.toLowerCase().trim());
+          }
+        } catch (e) {}
+      });
+
+      // ✅ Registration/Google-login ke baad email set hote hi turant call karo
+      function oneSignalSetEmailIdentity(email) {
+        if (!email) return;
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function (OneSignal) {
+          try {
+            await OneSignal.login(String(email).toLowerCase().trim());
+          } catch (e) {}
+        });
       }
     </script>
 
