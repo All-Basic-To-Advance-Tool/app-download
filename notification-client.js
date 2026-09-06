@@ -75,16 +75,138 @@
   }
 
   async function ensureSubscription() {
-    if (Notification.permission !== "granted") return null;
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      const key = await getVapidKey();
-      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(key) });
+  console.log("[Notify] ===== ensureSubscription START =====");
+  console.log("[Notify] Notification permission:", Notification.permission);
+  console.log("[Notify] ServiceWorker supported:", "serviceWorker" in navigator);
+  console.log("[Notify] PushManager supported:", "PushManager" in window);
+
+  try {
+    if (Notification.permission !== "granted") {
+      console.warn(
+        "[Notify] Permission is not granted:",
+        Notification.permission
+      );
+      return null;
     }
+
+    // Service Worker ready
+    console.log("[Notify] Waiting for Service Worker...");
+
+    const reg = await navigator.serviceWorker.ready;
+
+    console.log("[Notify] Service Worker ready");
+    console.log("[Notify] SW scope:", reg.scope);
+    console.log(
+      "[Notify] SW active:",
+      !!reg.active
+    );
+
+    // Existing subscription check
+    let sub = await reg.pushManager.getSubscription();
+
+    console.log(
+      "[Notify] Existing push subscription:",
+      sub ? "YES" : "NO"
+    );
+
+    // Create new subscription
+    if (!sub) {
+      console.log("[Notify] Getting VAPID public key...");
+
+      const key = await getVapidKey();
+
+      console.log(
+        "[Notify] VAPID key received:",
+        key ? "YES" : "NO"
+      );
+
+      console.log(
+        "[Notify] VAPID key length:",
+        key ? key.length : 0
+      );
+
+      console.log("[Notify] Creating Push subscription...");
+
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: b64ToUint8(key)
+        });
+
+        console.log(
+          "[Notify] ✅ Push subscription CREATED"
+        );
+
+      } catch (pushError) {
+
+        console.error(
+          "[Notify] ❌ pushManager.subscribe FAILED:",
+          pushError
+        );
+
+        console.error(
+          "[Notify] Error name:",
+          pushError.name
+        );
+
+        console.error(
+          "[Notify] Error message:",
+          pushError.message
+        );
+
+        alert(
+          "❌ Push Subscription Failed\n\n" +
+          "Error: " +
+          pushError.name +
+          "\n\n" +
+          pushError.message
+        );
+
+        return null;
+      }
+    }
+
+    // Backend sync
+    console.log("[Notify] Sending subscription to backend...");
+
     await syncSubscriptionToBackend(sub);
+
+    console.log(
+      "[Notify] ✅ Subscription synced with backend"
+    );
+
+    console.log("[Notify] ===== ensureSubscription END =====");
+
     return sub;
+
+  } catch (err) {
+
+    console.error(
+      "[Notify] ❌ ensureSubscription FAILED:",
+      err
+    );
+
+    console.error(
+      "[Notify] Error name:",
+      err.name
+    );
+
+    console.error(
+      "[Notify] Error message:",
+      err.message
+    );
+
+    alert(
+      "❌ Notification Setup Failed\n\n" +
+      "Error: " +
+      err.name +
+      "\n\n" +
+      err.message
+    );
+
+    return null;
   }
+}
 
   async function syncSubscriptionToBackend(sub) {
     const json = sub.toJSON();
