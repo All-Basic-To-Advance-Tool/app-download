@@ -18383,12 +18383,17 @@
 
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function (OneSignal) {
+        // ✅ NEW — website par (bina install kiye) bhi native OneSignal slide
+        // prompt dikhega agar permission abhi tak decide nahi hui hai
+        OneSignal.Slidedown.promptPush();
         await OneSignal.init({
           appId: ONESIGNAL_APP_ID,
           allowLocalhostAsSecureOrigin: true,
-          // ✅ NEW — hamara khud ka combined sw.js use karo (upar wale OneSignalSDKWorker.js
-          // ki jagah), taaki PWA install aur push dono ek hi service worker se chalein
-          serviceWorkerParam: { scope: "/" },
+          // ✅ FIX — scope hardcode "/" nahi karna, warna subfolder (GitHub Pages
+          // project site) par SW registration silently fail ho jaata hai aur
+          // subscriber kabhi bante hi nahi. Path current folder ke relative rakho,
+          // scope automatically usi folder tak seedha ban jaayega.
+          serviceWorkerParam: { scope: "./" },
           serviceWorkerPath: "sw.js",
         });
         // ✅ Login hote hi (ya page load par agar student pehle se hai) uska
