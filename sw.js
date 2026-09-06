@@ -5,7 +5,3 @@ self.addEventListener("activate", () => self.clients.claim());
 self.addEventListener("fetch", (e) => {
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
-
-// ✅ OneSignal ka push-handling worker isi service worker me import kar rahe hain
-// taaki custom PWA sw.js aur OneSignal ka push notification dono ek saath kaam karein
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDKWorker.js");
